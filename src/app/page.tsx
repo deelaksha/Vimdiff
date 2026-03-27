@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { Toolbar } from "@/components/Toolbar";
 import { DiffViewer, DiffViewerRef, ConflictData } from "@/components/DiffViewer";
 import { StatusBar } from "@/components/StatusBar";
+import { Tooltip } from "@/components/Tooltip";
 import { createPatch } from "diff";
-import { GitMerge, ChevronUp, ChevronDown, ArrowRight, Check, X, Edit2 } from "lucide-react";
+import { GitMerge, ChevronUp, ChevronDown, ArrowRight, Check, X, Edit2, Undo2, Redo2 } from "lucide-react";
 
 const SAMPLE_ORIGINAL = `export function calculateTotal(items) {
   let total = 0;
@@ -251,16 +252,31 @@ export default function Home() {
       <div className="flex w-full bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 shadow-sm z-10 text-xs font-mono text-zinc-500 uppercase tracking-wide shrink-0">
         {!isInline ? (
           <>
-            <div className="flex-1 px-4 py-1.5 border-r border-zinc-200 dark:border-zinc-800 text-center">
-              Original Content
+            <div className="flex-1 px-4 py-1 border-r border-zinc-200 dark:border-zinc-800 flex justify-between items-center bg-zinc-100/50 dark:bg-zinc-900/50">
+              <div className="w-[60px] opacity-0 pointer-events-none" />
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Original Version</span>
+              <div className="flex gap-1 w-[60px] justify-end">
+                <Tooltip content="Undo Original"><button onClick={() => diffRef.current?.undoOriginal()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-zinc-500 dark:text-zinc-400" title=""><Undo2 size={14}/></button></Tooltip>
+                <Tooltip content="Redo Original"><button onClick={() => diffRef.current?.redoOriginal()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-zinc-500 dark:text-zinc-400" title=""><Redo2 size={14}/></button></Tooltip>
+              </div>
             </div>
-            <div className="flex-1 px-4 py-1.5 text-center bg-blue-50/50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400">
-              Modified Content
+            <div className="flex-1 px-4 py-1 flex justify-between items-center bg-zinc-100/50 dark:bg-zinc-900/50">
+              <div className="w-[60px] opacity-0 pointer-events-none" />
+              <span className="font-semibold text-zinc-700 dark:text-zinc-300">Modified Version <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1.5 py-0.5 rounded text-[10px] tracking-widest hidden sm:inline">OUTPUT</span></span>
+              <div className="flex gap-1 w-[60px] justify-end">
+                <Tooltip content="Undo Modified"><button onClick={() => diffRef.current?.undoModified()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-blue-600 dark:text-blue-400" title=""><Undo2 size={14}/></button></Tooltip>
+                <Tooltip content="Redo Modified"><button onClick={() => diffRef.current?.redoModified()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-blue-600 dark:text-blue-400" title=""><Redo2 size={14}/></button></Tooltip>
+              </div>
             </div>
           </>
         ) : (
-          <div className="w-full px-4 py-1.5 text-center">
-            Inline Code Comparison
+          <div className="flex-1 px-4 py-1 flex justify-between items-center bg-zinc-100/50 dark:bg-zinc-900/50">
+            <div className="w-[60px] opacity-0 pointer-events-none" />
+            <span className="font-semibold text-zinc-700 dark:text-zinc-300">Inline Diff View</span>
+            <div className="flex gap-1 w-[60px] justify-end">
+              <Tooltip content="Undo Modified"><button onClick={() => diffRef.current?.undoModified()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-blue-600 dark:text-blue-400" title=""><Undo2 size={14}/></button></Tooltip>
+              <Tooltip content="Redo Modified"><button onClick={() => diffRef.current?.redoModified()} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition text-blue-600 dark:text-blue-400" title=""><Redo2 size={14}/></button></Tooltip>
+            </div>
           </div>
         )}
       </div>

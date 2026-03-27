@@ -7,8 +7,6 @@ import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "re
 export interface DiffViewerRef {
   getOriginalContent: () => string;
   getModifiedContent: () => string;
-  goToNextDiff: () => void;
-  goToPrevDiff: () => void;
   setOriginalContent: (val: string) => void;
   setModifiedContent: (val: string) => void;
   formatOriginal: () => void;
@@ -16,6 +14,12 @@ export interface DiffViewerRef {
   acceptCurrentChunkLeft: () => void;
   getConflictDataAtPos: () => ConflictData | null;
   applyCustomEdit: (range: any, text: string) => void;
+  undoOriginal: () => void;
+  redoOriginal: () => void;
+  undoModified: () => void;
+  redoModified: () => void;
+  goToNextDiff: () => void;
+  goToPrevDiff: () => void;
 }
 
 export interface ConflictData {
@@ -59,11 +63,50 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
         return diffEditorRef.current?.getModifiedEditor()?.getValue() || modified;
       },
       goToNextDiff: () => {
-        // Attempt to run the next diff action on the modified editor
-        diffEditorRef.current?.getModifiedEditor()?.getAction('editor.action.accessibleDiffViewer.next')?.run();
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const pos = modifiedEditor.getPosition();
+        
+        let nextChange = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) > pos.lineNumber);
+        if (!nextChange) nextChange = changes[0];
+
+        if (nextChange) {
+           const jumpLine = Math.max(nextChange.modifiedStartLineNumber, 1);
+           const endLine = Math.max(nextChange.modifiedEndLineNumber, jumpLine);
+           const maxCol = modifiedEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+           
+           modifiedEditor.revealLineInCenter(jumpLine);
+           modifiedEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+           modifiedEditor.focus();
+        }
       },
       goToPrevDiff: () => {
-        diffEditorRef.current?.getModifiedEditor()?.getAction('editor.action.accessibleDiffViewer.prev')?.run();
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const pos = modifiedEditor.getPosition();
+        
+        let prevChange = [...changes].reverse().find((c: any) => Math.max(c.modifiedStartLineNumber, 1) < pos.lineNumber);
+        if (!prevChange) prevChange = changes[changes.length - 1];
+
+        if (prevChange) {
+           const jumpLine = Math.max(prevChange.modifiedStartLineNumber, 1);
+           const endLine = Math.max(prevChange.modifiedEndLineNumber, jumpLine);
+           const maxCol = modifiedEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+           
+           modifiedEditor.revealLineInCenter(jumpLine);
+           modifiedEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+           modifiedEditor.focus();
+        }
       },
       setOriginalContent: (val: string) => {
         diffEditorRef.current?.getOriginalEditor()?.setValue(val);
@@ -181,7 +224,11 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
              text: text,
              forceMoveMarkers: true
           }]);
-      }
+      },
+      undoOriginal: () => diffEditorRef.current?.getOriginalEditor()?.trigger('keyboard', 'undo', null),
+      redoOriginal: () => diffEditorRef.current?.getOriginalEditor()?.trigger('keyboard', 'redo', null),
+      undoModified: () => diffEditorRef.current?.getModifiedEditor()?.trigger('keyboard', 'undo', null),
+      redoModified: () => diffEditorRef.current?.getModifiedEditor()?.trigger('keyboard', 'redo', null),
     }));
 
     if (!mounted) {
