@@ -40,10 +40,17 @@ const LANGUAGES = [
 ];
 
 const EDITOR_THEMES = [
+  { value: "vimdiff-dark", label: "VimDiff Dark" },
+  { value: "vimdiff-light", label: "VimDiff Light" },
   { value: "vs-dark", label: "VS Dark" },
-  { value: "light", label: "VS Light" },
-  { value: "hc-black", label: "High Contrast Dark" },
-  { value: "hc-light", label: "High Contrast Light" }
+  { value: "vs-light", label: "VS Light" },
+  { value: "dracula", label: "Dracula" },
+  { value: "monokai", label: "Monokai" },
+  { value: "github-dark", label: "GitHub Dark" },
+  { value: "night-owl", label: "Night Owl" },
+  { value: "vimdiff-purple", label: "VimDiff Purple" },
+  { value: "vimdiff-blue", label: "VimDiff Blue" },
+  { value: "vimdiff-black", label: "VimDiff OLED Black" }
 ];
 
 export function Toolbar({
@@ -98,7 +105,7 @@ export function Toolbar({
         </div>
 
         {/* Editor Theme Selector */}
-        <div className="flex items-center gap-2 ml-2 border-l border-zinc-200 dark:border-zinc-800 pl-4 shrink-0 hidden sm:flex">
+        <div className="flex items-center gap-2 ml-1 sm:ml-2 sm:border-l border-zinc-200 dark:border-zinc-800 sm:pl-4 shrink-0">
           <select 
             value={editorTheme}
             onChange={(e) => setEditorTheme(e.target.value)}

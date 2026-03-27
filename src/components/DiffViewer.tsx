@@ -12,6 +12,7 @@ export interface DiffViewerRef {
   formatOriginal: () => void;
   formatModified: () => void;
   acceptCurrentChunkLeft: () => void;
+  acceptCurrentChunkRight: () => void;
   getConflictDataAtPos: () => ConflictData | null;
   applyCustomEdit: (range: any, text: string) => void;
   undoOriginal: () => void;
@@ -168,7 +169,57 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
              forceMoveMarkers: true
            }]);
 
-           // Auto jump to next if possible
+           diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
+        }
+      },
+      acceptCurrentChunkRight: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const originalEditor = diffEditor.getOriginalEditor();
+        const pos = modifiedEditor.getPosition();
+        const originalModel = originalEditor.getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        let change = changes.find((c: any) => 
+          pos.lineNumber >= c.modifiedStartLineNumber && 
+          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
+        );
+
+        if (!change) {
+          change = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) >= pos.lineNumber);
+        }
+        if (!change) {
+           change = changes[0];
+        }
+
+        if (change) {
+           const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+           let textToInsert = "";
+           if (modifiedEndLineNumber > 0 && modifiedStartLineNumber > 0) {
+             const startRange = new monaco.Range(modifiedStartLineNumber, 1, modifiedEndLineNumber, modifiedModel.getLineMaxColumn(modifiedEndLineNumber));
+             textToInsert = modifiedModel.getValueInRange(startRange);
+           }
+
+           const rStart = originalStartLineNumber === 0 ? originalStartLineNumber + 1 : originalStartLineNumber;
+           let rEnd = originalEndLineNumber === 0 ? originalStartLineNumber : originalEndLineNumber;
+           if (rEnd === 0) rEnd = 1;
+           const rStartBounded = rStart === 0 ? 1 : rStart;
+           
+           let range = new monaco.Range(rStartBounded, 1, rEnd, originalModel.getLineMaxColumn(rEnd));
+
+           originalEditor.executeEdits("merge", [{
+             range: range,
+             text: textToInsert,
+             forceMoveMarkers: true
+           }]);
+
            diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
         }
       },
@@ -246,6 +297,120 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
           modified={modified}
           language={language}
           theme={theme}
+          beforeMount={(monaco) => {
+            monaco.editor.defineTheme('vimdiff-dark', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [],
+              colors: {
+                'diffEditor.insertedLineBackground': '#11382099', // Dark strict green
+                'diffEditor.insertedTextBackground': '#1f693b80', // Highlighted diff chunks
+                'diffEditor.removedLineBackground': '#4a111199',  // Dark strict red
+                'diffEditor.removedTextBackground': '#8a232380',  // Highlighted diff chunks
+                'editor.background': '#09090b', // Seamless dark zinc background
+              }
+            });
+            monaco.editor.defineTheme('vimdiff-light', {
+              base: 'vs',
+              inherit: true,
+              rules: [],
+              colors: {
+                'diffEditor.insertedLineBackground': '#dcfce780',
+                'diffEditor.insertedTextBackground': '#bbf7d080',
+                'diffEditor.removedLineBackground': '#fee2e280',
+                'diffEditor.removedTextBackground': '#fecaca80',
+                'editor.background': '#ffffff',
+              }
+            });
+            monaco.editor.defineTheme('dracula', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '282a36' }],
+              colors: {
+                'editor.background': '#282a36',
+                'editor.foreground': '#f8f8f2',
+                'diffEditor.insertedLineBackground': '#50fa7b33',
+                'diffEditor.insertedTextBackground': '#50fa7b80',
+                'diffEditor.removedLineBackground': '#ff555533',
+                'diffEditor.removedTextBackground': '#ff555580',
+              }
+            });
+            monaco.editor.defineTheme('monokai', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '272822' }],
+              colors: {
+                'editor.background': '#272822',
+                'editor.foreground': '#f8f8f2',
+                'diffEditor.insertedLineBackground': '#a6e22e33',
+                'diffEditor.insertedTextBackground': '#a6e22e80',
+                'diffEditor.removedLineBackground': '#f9267233',
+                'diffEditor.removedTextBackground': '#f9267280',
+              }
+            });
+            monaco.editor.defineTheme('github-dark', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '0d1117' }],
+              colors: {
+                'editor.background': '#0d1117',
+                'editor.foreground': '#c9d1d9',
+                'diffEditor.insertedLineBackground': '#23863633',
+                'diffEditor.insertedTextBackground': '#23863680',
+                'diffEditor.removedLineBackground': '#da363333',
+                'diffEditor.removedTextBackground': '#da363380',
+              }
+            });
+            monaco.editor.defineTheme('night-owl', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '011627' }],
+              colors: {
+                'editor.background': '#011627',
+                'editor.foreground': '#d6deeb',
+                'diffEditor.insertedLineBackground': '#addb6733',
+                'diffEditor.insertedTextBackground': '#addb6780',
+                'diffEditor.removedLineBackground': '#EF535033',
+                'diffEditor.removedTextBackground': '#EF535080',
+              }
+            });
+            monaco.editor.defineTheme('vimdiff-purple', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '1A0B2E' }],
+              colors: {
+                'editor.background': '#1A0B2E',
+                'diffEditor.insertedLineBackground': '#11382099',
+                'diffEditor.insertedTextBackground': '#1f693b80',
+                'diffEditor.removedLineBackground': '#4a111199',
+                'diffEditor.removedTextBackground': '#8a232380',
+              }
+            });
+            monaco.editor.defineTheme('vimdiff-blue', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '0B1426' }],
+              colors: {
+                'editor.background': '#0B1426',
+                'diffEditor.insertedLineBackground': '#11382099',
+                'diffEditor.insertedTextBackground': '#1f693b80',
+                'diffEditor.removedLineBackground': '#4a111199',
+                'diffEditor.removedTextBackground': '#8a232380',
+              }
+            });
+            monaco.editor.defineTheme('vimdiff-black', {
+              base: 'vs-dark',
+              inherit: true,
+              rules: [{ background: '000000' }],
+              colors: {
+                'editor.background': '#000000',
+                'diffEditor.insertedLineBackground': '#11382099',
+                'diffEditor.insertedTextBackground': '#1f693b80',
+                'diffEditor.removedLineBackground': '#4a111199',
+                'diffEditor.removedTextBackground': '#8a232380',
+              }
+            });
+          }}
           onMount={(editor, monaco) => {
             diffEditorRef.current = editor;
             monacoRef.current = monaco;

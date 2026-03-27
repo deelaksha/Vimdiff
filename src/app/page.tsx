@@ -6,7 +6,7 @@ import { DiffViewer, DiffViewerRef, ConflictData } from "@/components/DiffViewer
 import { StatusBar } from "@/components/StatusBar";
 import { Tooltip } from "@/components/Tooltip";
 import { createPatch } from "diff";
-import { GitMerge, ChevronUp, ChevronDown, ArrowRight, Check, X, Edit2, Undo2, Redo2 } from "lucide-react";
+import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2 } from "lucide-react";
 
 const SAMPLE_ORIGINAL = `export function calculateTotal(items) {
   let total = 0;
@@ -239,6 +239,9 @@ export default function Home() {
             }
          }} className="px-3 py-1 bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-300 dark:border-purple-800/80 hover:bg-purple-200 dark:hover:bg-purple-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Edit this particular block in an isolated popup">
             <Edit2 size={14} /> Edit Block
+         </button>
+         <button onClick={() => diffRef.current?.acceptCurrentChunkRight()} className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80 hover:bg-amber-200 dark:hover:bg-amber-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
+            <ArrowLeft size={14} /> Take Right (Copy to Original)
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentChunkLeft()} className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800/80 hover:bg-green-200 dark:hover:bg-green-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <ArrowRight size={14} /> Take Left (Copy to Modified)
