@@ -21,6 +21,7 @@ export interface DiffViewerRef {
   redoModified: () => void;
   goToNextDiff: () => void;
   goToPrevDiff: () => void;
+  acceptCurrentLineLeft: () => void;
 }
 
 export interface ConflictData {
@@ -222,6 +223,68 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
 
            diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
         }
+      },
+      acceptCurrentLineLeft: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const originalEditor = diffEditor.getOriginalEditor();
+        const pos = modifiedEditor.getPosition();
+        const originalModel = originalEditor.getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        let change = changes.find((c: any) => 
+          pos.lineNumber >= c.modifiedStartLineNumber && 
+          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
+        );
+
+        if (!change) return;
+
+        const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+        let orgLineNum = 0;
+        let isDeletionInModified = modifiedEndLineNumber === 0;
+
+        if (isDeletionInModified) {
+          orgLineNum = originalStartLineNumber;
+        } else {
+          let offset = pos.lineNumber - modifiedStartLineNumber;
+          if (originalStartLineNumber > 0) {
+             orgLineNum = originalStartLineNumber + offset;
+             if (orgLineNum > originalEndLineNumber) {
+                orgLineNum = 0;
+             }
+          }
+        }
+
+        let editRange;
+        let textToInsert = "";
+
+        if (isDeletionInModified) {
+           let targetLine = modifiedStartLineNumber === 0 ? 1 : modifiedStartLineNumber + 1;
+           editRange = new monaco.Range(targetLine, 1, targetLine, 1);
+           textToInsert = originalModel.getLineContent(orgLineNum) + "\n";
+        } else {
+           editRange = new monaco.Range(pos.lineNumber, 1, pos.lineNumber, modifiedModel.getLineMaxColumn(pos.lineNumber));
+           if (orgLineNum > 0) {
+             textToInsert = originalModel.getLineContent(orgLineNum);
+           } else {
+             textToInsert = "";
+           }
+        }
+
+        modifiedEditor.executeEdits("merge-line", [{
+          range: editRange,
+          text: textToInsert,
+          forceMoveMarkers: true
+        }]);
+        
+        modifiedEditor.setPosition({ lineNumber: pos.lineNumber + 1, column: pos.column });
       },
       getConflictDataAtPos: () => {
         const diffEditor = diffEditorRef.current;

@@ -6,7 +6,7 @@ import { DiffViewer, DiffViewerRef, ConflictData } from "@/components/DiffViewer
 import { StatusBar } from "@/components/StatusBar";
 import { Tooltip } from "@/components/Tooltip";
 import { createPatch } from "diff";
-import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2 } from "lucide-react";
+import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2, ArrowRightToLine } from "lucide-react";
 
 const SAMPLE_ORIGINAL = `export function calculateTotal(items) {
   let total = 0;
@@ -203,6 +203,7 @@ export default function Home() {
         onSwap={handleSwap}
         onAcceptLeft={handleAcceptLeft}
         onAcceptRight={handleAcceptRight}
+        onAcceptLineLeft={() => diffRef.current?.acceptCurrentLineLeft()}
         ignoreWhitespace={ignoreWhitespace}
         setIgnoreWhitespace={setIgnoreWhitespace}
         onFormatBoth={handleFormatBoth}
@@ -245,6 +246,9 @@ export default function Home() {
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentChunkLeft()} className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800/80 hover:bg-green-200 dark:hover:bg-green-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <ArrowRight size={14} /> Take Left (Copy to Modified)
+         </button>
+         <button onClick={() => diffRef.current?.acceptCurrentLineLeft()} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
+            <ArrowRightToLine size={14} /> Take Single Line Right
          </button>
          <button onClick={() => diffRef.current?.goToNextDiff()} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800/80 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <Check size={14} /> Keep Right (Accept Modified)
