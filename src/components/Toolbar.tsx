@@ -125,7 +125,7 @@ export function Toolbar({
                <ClipboardCopy size={16} />
              </button>
           </Tooltip>
-          <Tooltip content="Take Modified (Copy Right to Left)">
+          <Tooltip content="Push Modified to Original (Right -> Left)">
             <button onClick={onAcceptRight} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors text-blue-600 dark:text-blue-400">
               <ArrowLeft size={16} />
             </button>
@@ -135,12 +135,12 @@ export function Toolbar({
               <ArrowRightLeft size={16} />
             </button>
           </Tooltip>
-          <Tooltip content="Take Original Block (Copy Left to Right)">
+          <Tooltip content="Push Original Block to Modified (Left -> Right)">
             <button onClick={onAcceptLeft} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors text-green-600 dark:text-green-400">
               <ArrowRight size={16} />
             </button>
           </Tooltip>
-          <Tooltip content="Take Single Line (Original to Modified)">
+          <Tooltip content="Push Original Single Line (Left -> Right)">
             <button onClick={onAcceptLineLeft} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors text-emerald-600 dark:text-emerald-400">
               <ArrowRightToLine size={16} />
             </button>

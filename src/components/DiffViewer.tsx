@@ -54,6 +54,7 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
     const [mounted, setMounted] = useState(false);
     const diffEditorRef = useRef<any>(null);
     const monacoRef = useRef<any>(null);
+    const lastFocusedEditorRef = useRef<'original' | 'modified'>('modified');
 
     useEffect(() => setMounted(true), []);
 
@@ -71,20 +72,33 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return;
 
-        const modifiedEditor = diffEditor.getModifiedEditor();
-        const pos = modifiedEditor.getPosition();
+        const isOriginal = lastFocusedEditorRef.current === 'original';
+        const activeEditor = isOriginal ? diffEditor.getOriginalEditor() : diffEditor.getModifiedEditor();
+        const pos = activeEditor.getPosition();
         
-        let nextChange = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) > pos.lineNumber);
-        if (!nextChange) nextChange = changes[0];
-
-        if (nextChange) {
-           const jumpLine = Math.max(nextChange.modifiedStartLineNumber, 1);
-           const endLine = Math.max(nextChange.modifiedEndLineNumber, jumpLine);
-           const maxCol = modifiedEditor.getModel()?.getLineMaxColumn(endLine) || 1;
-           
-           modifiedEditor.revealLineInCenter(jumpLine);
-           modifiedEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
-           modifiedEditor.focus();
+        let nextChange;
+        if (isOriginal) {
+          nextChange = changes.find((c: any) => Math.max(c.originalStartLineNumber, 1) > pos.lineNumber);
+          if (!nextChange) nextChange = changes[0];
+          if (nextChange) {
+            const jumpLine = Math.max(nextChange.originalStartLineNumber, 1);
+            const endLine = Math.max(nextChange.originalEndLineNumber, jumpLine);
+            const maxCol = activeEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+            activeEditor.revealLineInCenter(jumpLine);
+            activeEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+            activeEditor.focus();
+          }
+        } else {
+          nextChange = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) > pos.lineNumber);
+          if (!nextChange) nextChange = changes[0];
+          if (nextChange) {
+            const jumpLine = Math.max(nextChange.modifiedStartLineNumber, 1);
+            const endLine = Math.max(nextChange.modifiedEndLineNumber, jumpLine);
+            const maxCol = activeEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+            activeEditor.revealLineInCenter(jumpLine);
+            activeEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+            activeEditor.focus();
+          }
         }
       },
       goToPrevDiff: () => {
@@ -94,20 +108,33 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return;
 
-        const modifiedEditor = diffEditor.getModifiedEditor();
-        const pos = modifiedEditor.getPosition();
+        const isOriginal = lastFocusedEditorRef.current === 'original';
+        const activeEditor = isOriginal ? diffEditor.getOriginalEditor() : diffEditor.getModifiedEditor();
+        const pos = activeEditor.getPosition();
         
-        let prevChange = [...changes].reverse().find((c: any) => Math.max(c.modifiedStartLineNumber, 1) < pos.lineNumber);
-        if (!prevChange) prevChange = changes[changes.length - 1];
-
-        if (prevChange) {
-           const jumpLine = Math.max(prevChange.modifiedStartLineNumber, 1);
-           const endLine = Math.max(prevChange.modifiedEndLineNumber, jumpLine);
-           const maxCol = modifiedEditor.getModel()?.getLineMaxColumn(endLine) || 1;
-           
-           modifiedEditor.revealLineInCenter(jumpLine);
-           modifiedEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
-           modifiedEditor.focus();
+        let prevChange;
+        if (isOriginal) {
+          prevChange = [...changes].reverse().find((c: any) => Math.max(c.originalStartLineNumber, 1) < pos.lineNumber);
+          if (!prevChange) prevChange = changes[changes.length - 1];
+          if (prevChange) {
+            const jumpLine = Math.max(prevChange.originalStartLineNumber, 1);
+            const endLine = Math.max(prevChange.originalEndLineNumber, jumpLine);
+            const maxCol = activeEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+            activeEditor.revealLineInCenter(jumpLine);
+            activeEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+            activeEditor.focus();
+          }
+        } else {
+          prevChange = [...changes].reverse().find((c: any) => Math.max(c.modifiedStartLineNumber, 1) < pos.lineNumber);
+          if (!prevChange) prevChange = changes[changes.length - 1];
+          if (prevChange) {
+            const jumpLine = Math.max(prevChange.modifiedStartLineNumber, 1);
+            const endLine = Math.max(prevChange.modifiedEndLineNumber, jumpLine);
+            const maxCol = activeEditor.getModel()?.getLineMaxColumn(endLine) || 1;
+            activeEditor.revealLineInCenter(jumpLine);
+            activeEditor.setSelection(new monaco.Selection(jumpLine, 1, endLine, maxCol));
+            activeEditor.focus();
+          }
         }
       },
       setOriginalContent: (val: string) => {
@@ -232,49 +259,93 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return;
 
+        const isOriginal = lastFocusedEditorRef.current === 'original';
         const modifiedEditor = diffEditor.getModifiedEditor();
         const originalEditor = diffEditor.getOriginalEditor();
-        const pos = modifiedEditor.getPosition();
         const originalModel = originalEditor.getModel();
         const modifiedModel = modifiedEditor.getModel();
 
-        let change = changes.find((c: any) => 
-          pos.lineNumber >= c.modifiedStartLineNumber && 
-          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
-        );
+        let pos: any;
+        let change;
+        if (isOriginal) {
+          pos = originalEditor.getPosition();
+          change = changes.find((c: any) => 
+            pos.lineNumber >= c.originalStartLineNumber && 
+            Math.max(c.originalStartLineNumber, 1) <= pos.lineNumber &&
+            pos.lineNumber <= Math.max(c.originalEndLineNumber, c.originalStartLineNumber)
+          );
+        } else {
+          pos = modifiedEditor.getPosition();
+          change = changes.find((c: any) => 
+            pos.lineNumber >= c.modifiedStartLineNumber && 
+            Math.max(c.modifiedStartLineNumber, 1) <= pos.lineNumber &&
+            pos.lineNumber <= Math.max(c.modifiedEndLineNumber, c.modifiedStartLineNumber)
+          );
+        }
 
         if (!change) return;
 
         const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
 
         let orgLineNum = 0;
+        let modPosLine = 0;
         let isDeletionInModified = modifiedEndLineNumber === 0;
+        let isAdditionInModified = originalEndLineNumber === 0;
 
-        if (isDeletionInModified) {
-          orgLineNum = originalStartLineNumber;
+        if (isOriginal) {
+           orgLineNum = pos.lineNumber;
+           if (isAdditionInModified) return; 
+           let offset = orgLineNum - originalStartLineNumber;
+           if (isDeletionInModified) {
+              modPosLine = modifiedStartLineNumber;
+           } else {
+              modPosLine = modifiedStartLineNumber + offset;
+              if (modPosLine > modifiedEndLineNumber) {
+                 modPosLine = modifiedEndLineNumber;
+              }
+           }
         } else {
-          let offset = pos.lineNumber - modifiedStartLineNumber;
-          if (originalStartLineNumber > 0) {
+           modPosLine = pos.lineNumber;
+           if (isAdditionInModified) {
+             orgLineNum = 0; 
+           } else if (isDeletionInModified) {
+             orgLineNum = originalStartLineNumber;
+           } else {
+             let offset = modPosLine - modifiedStartLineNumber;
              orgLineNum = originalStartLineNumber + offset;
-             if (orgLineNum > originalEndLineNumber) {
-                orgLineNum = 0;
-             }
-          }
+             if (orgLineNum > originalEndLineNumber) orgLineNum = 0;
+           }
         }
 
         let editRange;
         let textToInsert = "";
 
-        if (isDeletionInModified) {
+        if (isOriginal && modPosLine > modifiedEndLineNumber && !isDeletionInModified) {
+            // Append line to the end of the modified block
+            let insertLine = modifiedEndLineNumber + 1;
+            editRange = new monaco.Range(insertLine, 1, insertLine, 1);
+            textToInsert = originalModel.getLineContent(orgLineNum) + "\n";
+        } else if (isDeletionInModified) {
            let targetLine = modifiedStartLineNumber === 0 ? 1 : modifiedStartLineNumber + 1;
            editRange = new monaco.Range(targetLine, 1, targetLine, 1);
-           textToInsert = originalModel.getLineContent(orgLineNum) + "\n";
-        } else {
-           editRange = new monaco.Range(pos.lineNumber, 1, pos.lineNumber, modifiedModel.getLineMaxColumn(pos.lineNumber));
            if (orgLineNum > 0) {
-             textToInsert = originalModel.getLineContent(orgLineNum);
+             textToInsert = originalModel.getLineContent(orgLineNum) + "\n";
+           }
+        } else {
+           if (orgLineNum === 0) {
+              // Delete the line entirely from modified
+              let endLine = modPosLine;
+              let endCol = modifiedModel.getLineMaxColumn(modPosLine);
+              if (modPosLine < modifiedModel.getLineCount()) {
+                  endLine = modPosLine + 1;
+                  endCol = 1;
+              }
+              editRange = new monaco.Range(modPosLine, 1, endLine, endCol);
+              textToInsert = "";
            } else {
-             textToInsert = "";
+              // Replace the line exactly
+              editRange = new monaco.Range(modPosLine, 1, modPosLine, modifiedModel.getLineMaxColumn(modPosLine));
+              textToInsert = originalModel.getLineContent(orgLineNum);
            }
         }
 
@@ -284,7 +355,11 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
           forceMoveMarkers: true
         }]);
         
-        modifiedEditor.setPosition({ lineNumber: pos.lineNumber + 1, column: pos.column });
+        if (isOriginal) {
+           originalEditor.setPosition({ lineNumber: pos.lineNumber + 1, column: pos.column });
+        } else {
+           modifiedEditor.setPosition({ lineNumber: pos.lineNumber + 1, column: pos.column });
+        }
       },
       getConflictDataAtPos: () => {
         const diffEditor = diffEditorRef.current;
@@ -477,6 +552,13 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
           onMount={(editor, monaco) => {
             diffEditorRef.current = editor;
             monacoRef.current = monaco;
+            
+            // Track focus robustly
+            editor.getOriginalEditor().onDidChangeCursorPosition(() => { lastFocusedEditorRef.current = 'original'; });
+            editor.getModifiedEditor().onDidChangeCursorPosition(() => { lastFocusedEditorRef.current = 'modified'; });
+            editor.getOriginalEditor().onDidFocusEditorWidget(() => { lastFocusedEditorRef.current = 'original'; });
+            editor.getModifiedEditor().onDidFocusEditorWidget(() => { lastFocusedEditorRef.current = 'modified'; });
+            
             editor.onDidUpdateDiff(() => {
               const changes = editor.getLineChanges();
               if (!changes) return;
