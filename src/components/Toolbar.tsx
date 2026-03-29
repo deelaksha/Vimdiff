@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { Upload, Sun, Moon, Layout, Columns, Download, Trash2, ChevronUp, ChevronDown, ArrowRightLeft, ArrowRight, ArrowLeft, ClipboardCopy, Wand2, Text, WrapText, Hash, FileDown, ArrowRightToLine } from "lucide-react";
+import { Upload, Sun, Moon, Layout, Columns, Download, Trash2, ChevronUp, ChevronDown, ArrowRightLeft, ArrowRight, ArrowLeft, ClipboardCopy, Wand2, Text, WrapText, Hash, FileDown } from "lucide-react";
 import { Tooltip } from "@/components/Tooltip";
 
 interface ToolbarProps {
@@ -20,7 +20,6 @@ interface ToolbarProps {
   onSwap: () => void;
   onAcceptLeft: () => void;
   onAcceptRight: () => void;
-  onAcceptLineLeft: () => void;
   ignoreWhitespace: boolean;
   setIgnoreWhitespace: (val: boolean) => void;
   onFormatBoth: () => void;
@@ -56,7 +55,7 @@ const EDITOR_THEMES = [
 
 export function Toolbar({
   language, setLanguage, isInline, setIsInline, onOriginalUpload, onModifiedUpload, onClear, onExport, onNextDiff, onPrevDiff,
-  editorTheme, setEditorTheme, onSwap, onAcceptLeft, onAcceptRight, onAcceptLineLeft, ignoreWhitespace, setIgnoreWhitespace, onFormatBoth, onCopyOriginal, onCopyModified,
+  editorTheme, setEditorTheme, onSwap, onAcceptLeft, onAcceptRight, ignoreWhitespace, setIgnoreWhitespace, onFormatBoth, onCopyOriginal, onCopyModified,
   wordWrap, setWordWrap, lineNumbers, setLineNumbers, fontSize, setFontSize, onDownloadOriginal, onDownloadModified
 }: ToolbarProps) {
   const { theme, setTheme } = useTheme();
@@ -138,11 +137,6 @@ export function Toolbar({
           <Tooltip content="Push Original Block to Modified (Left -> Right)">
             <button onClick={onAcceptLeft} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors text-green-600 dark:text-green-400">
               <ArrowRight size={16} />
-            </button>
-          </Tooltip>
-          <Tooltip content="Push Original Single Line (Left -> Right)">
-            <button onClick={onAcceptLineLeft} className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-md transition-colors text-emerald-600 dark:text-emerald-400">
-              <ArrowRightToLine size={16} />
             </button>
           </Tooltip>
           <Tooltip content="Copy Modified Content">

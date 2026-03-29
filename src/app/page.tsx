@@ -203,7 +203,6 @@ export default function Home() {
         onSwap={handleSwap}
         onAcceptLeft={handleAcceptLeft}
         onAcceptRight={handleAcceptRight}
-        onAcceptLineLeft={() => diffRef.current?.acceptCurrentLineLeft()}
         ignoreWhitespace={ignoreWhitespace}
         setIgnoreWhitespace={setIgnoreWhitespace}
         onFormatBoth={handleFormatBoth}
@@ -242,13 +241,13 @@ export default function Home() {
             <Edit2 size={14} /> Edit Block
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentChunkRight()} className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80 hover:bg-amber-200 dark:hover:bg-amber-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
-            <ArrowLeft size={14} /> Push Modified (Right {'->'} Left)
+            <ArrowLeft size={14} /> Accept Modified (Right {'->'} Left)
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentChunkLeft()} className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800/80 hover:bg-green-200 dark:hover:bg-green-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
-            <ArrowRight size={14} /> Push Original (Left {'->'} Right)
+            <ArrowRight size={14} /> Accept Original Block
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentLineLeft()} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
-            <ArrowRightToLine size={14} /> Push Original Line (Left {'->'} Right)
+            <ArrowRightToLine size={14} /> Accept Single Line
          </button>
          <button onClick={() => diffRef.current?.goToNextDiff()} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800/80 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <Check size={14} /> Keep Right (Accept Modified)
