@@ -6,7 +6,7 @@ import { DiffViewer, DiffViewerRef, ConflictData } from "@/components/DiffViewer
 import { StatusBar } from "@/components/StatusBar";
 import { Tooltip } from "@/components/Tooltip";
 import { createPatch } from "diff";
-import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2, ArrowRightToLine, PlusCircle } from "lucide-react";
+import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2, ArrowRightToLine, PlusCircle, Wand2 } from "lucide-react";
 
 const SAMPLE_ORIGINAL = `export function calculateTotal(items) {
   let total = 0;
@@ -44,7 +44,7 @@ async function getData(url) {
 export default function Home() {
   const [original, setOriginal] = useState(SAMPLE_ORIGINAL);
   const [modified, setModified] = useState(SAMPLE_MODIFIED);
-  const [language, setLanguage] = useState("javascript");
+  const [language, setLanguage] = useState("plaintext");
   const [isInline, setIsInline] = useState(false);
   const [editorTheme, setEditorTheme] = useState("vs-dark");
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
@@ -255,6 +255,14 @@ export default function Home() {
          <button onClick={() => diffRef.current?.appendCurrentChunkLeft()} className="px-3 py-1 bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800/80 hover:bg-teal-200 dark:hover:bg-teal-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Keep modified code but prepend the original code above it">
             <PlusCircle size={14} /> Keep Both (Prepend Original)
          </button>
+         <button onClick={() => diffRef.current?.acceptAllKeepBoth()} className="px-3 py-1 bg-fuchsia-100 dark:bg-fuchsia-900/40 text-fuchsia-700 dark:text-fuchsia-300 border border-fuchsia-300 dark:border-fuchsia-800/80 hover:bg-fuchsia-200 dark:hover:bg-fuchsia-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Automatically keep both versions for all conflicts without losing any lines">
+            <Wand2 size={14} /> Merge All (Keep Both)
+         </button>
+         {language === "makefile" && (
+           <button onClick={() => diffRef.current?.singleMergeAll()} className="px-3 py-1 bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-800/80 hover:bg-rose-200 dark:hover:bg-rose-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Append all new unique lines from modified to the end of original base">
+              <PlusCircle size={14} /> Single Merge All
+           </button>
+         )}
          <button onClick={() => diffRef.current?.goToNextDiff()} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800/80 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <Check size={14} /> Keep Right (Accept Modified)
          </button>

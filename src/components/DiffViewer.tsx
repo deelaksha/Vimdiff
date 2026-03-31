@@ -24,6 +24,8 @@ export interface DiffViewerRef {
   acceptCurrentLineLeft: () => void;
   appendCurrentChunkLeft: () => void;
   appendCurrentChunkRight: () => void;
+  acceptAllKeepBoth: () => void;
+  singleMergeAll: () => void;
 }
 
 export interface ConflictData {
@@ -315,6 +317,118 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
 
            diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
         }
+      },
+      acceptAllKeepBoth: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const originalModel = diffEditor.getOriginalEditor().getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        // Sort changes in descending order by modified start line 
+        // to avoid position shifting when applying multiple edits
+        const sortedChanges = [...changes].sort((a: any, b: any) => 
+          (b.modifiedStartLineNumber || 0) - (a.modifiedStartLineNumber || 0)
+        );
+
+        const edits: any[] = [];
+
+        sortedChanges.forEach((change: any) => {
+           const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+           let originalTextToInsert = "";
+           if (originalEndLineNumber > 0 && originalStartLineNumber > 0) {
+             const startRange = new monaco.Range(originalStartLineNumber, 1, originalEndLineNumber, originalModel.getLineMaxColumn(originalEndLineNumber));
+             originalTextToInsert = originalModel.getValueInRange(startRange);
+           }
+
+           let modifiedTextToInsert = "";
+           if (modifiedEndLineNumber > 0 && modifiedStartLineNumber > 0) {
+             const startRange = new monaco.Range(modifiedStartLineNumber, 1, modifiedEndLineNumber, modifiedModel.getLineMaxColumn(modifiedEndLineNumber));
+             modifiedTextToInsert = modifiedModel.getValueInRange(startRange);
+           }
+
+           let textToInsert = "";
+           if (originalTextToInsert && modifiedTextToInsert) {
+             textToInsert = originalTextToInsert + "\n" + modifiedTextToInsert;
+           } else {
+             textToInsert = originalTextToInsert || modifiedTextToInsert;
+           }
+
+           const rStart = modifiedStartLineNumber === 0 ? modifiedStartLineNumber + 1 : modifiedStartLineNumber;
+           let rEnd = modifiedEndLineNumber === 0 ? modifiedStartLineNumber : modifiedEndLineNumber;
+           if (rEnd === 0) rEnd = 1;
+           const rStartBounded = rStart === 0 ? 1 : rStart;
+           
+           let range = new monaco.Range(rStartBounded, 1, rEnd, modifiedModel.getLineMaxColumn(rEnd));
+
+           edits.push({
+             range: range,
+             text: textToInsert,
+             forceMoveMarkers: true
+           });
+        });
+
+        modifiedEditor.executeEdits("merge-all", edits);
+      },
+      singleMergeAll: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const originalModel = diffEditor.getOriginalEditor().getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        const originalLines = originalModel.getValue().split(/\r?\n/);
+        const originalSet = new Set();
+        originalLines.forEach((line: string) => {
+            const trimmed = line.trim();
+            if (trimmed) originalSet.add(trimmed);
+        });
+
+        const newLinesToAppend: string[] = [];
+
+        changes.forEach((change: any) => {
+           if (change.modifiedEndLineNumber > 0 && change.modifiedStartLineNumber > 0) {
+              const start = change.modifiedStartLineNumber;
+              const end = change.modifiedEndLineNumber;
+              for (let i = start; i <= end; i++) {
+                 const lineContent = modifiedModel.getLineContent(i);
+                 const trimmed = lineContent.trim();
+                 if (trimmed && !originalSet.has(trimmed)) {
+                    newLinesToAppend.push(lineContent);
+                    originalSet.add(trimmed);
+                 }
+              }
+           }
+        });
+
+        let finalContent = originalModel.getValue();
+        if (newLinesToAppend.length > 0) {
+           if (finalContent.length > 0 && !finalContent.endsWith("\n")) {
+               finalContent += "\n";
+           }
+           finalContent += newLinesToAppend.join("\n");
+        }
+
+        const lineCount = modifiedModel.getLineCount();
+        const lastColumn = modifiedModel.getLineMaxColumn(lineCount);
+        const range = new monaco.Range(1, 1, Math.max(1, lineCount), Math.max(1, lastColumn));
+
+        modifiedEditor.executeEdits("single-merge-all", [{
+           range: range,
+           text: finalContent,
+           forceMoveMarkers: true
+        }]);
       },
       appendCurrentChunkRight: () => {
         const diffEditor = diffEditorRef.current;

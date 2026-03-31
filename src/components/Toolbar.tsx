@@ -36,7 +36,7 @@ interface ToolbarProps {
 }
 
 const LANGUAGES = [
-  "plaintext", "javascript", "typescript", "python", "java", "json", "xml", "html", "css", "markdown"
+  "plaintext", "python", "go", "xml", "makefile"
 ];
 
 const EDITOR_THEMES = [
