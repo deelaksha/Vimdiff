@@ -22,6 +22,8 @@ export interface DiffViewerRef {
   goToNextDiff: () => void;
   goToPrevDiff: () => void;
   acceptCurrentLineLeft: () => void;
+  appendCurrentChunkLeft: () => void;
+  appendCurrentChunkRight: () => void;
 }
 
 export interface ConflictData {
@@ -233,6 +235,133 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
            if (modifiedEndLineNumber > 0 && modifiedStartLineNumber > 0) {
              const startRange = new monaco.Range(modifiedStartLineNumber, 1, modifiedEndLineNumber, modifiedModel.getLineMaxColumn(modifiedEndLineNumber));
              textToInsert = modifiedModel.getValueInRange(startRange);
+           }
+
+           const rStart = originalStartLineNumber === 0 ? originalStartLineNumber + 1 : originalStartLineNumber;
+           let rEnd = originalEndLineNumber === 0 ? originalStartLineNumber : originalEndLineNumber;
+           if (rEnd === 0) rEnd = 1;
+           const rStartBounded = rStart === 0 ? 1 : rStart;
+           
+           let range = new monaco.Range(rStartBounded, 1, rEnd, originalModel.getLineMaxColumn(rEnd));
+
+           originalEditor.executeEdits("merge", [{
+             range: range,
+             text: textToInsert,
+             forceMoveMarkers: true
+           }]);
+
+           diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
+        }
+      },
+      appendCurrentChunkLeft: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const pos = modifiedEditor.getPosition();
+        const originalModel = diffEditor.getOriginalEditor().getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        let change = changes.find((c: any) => 
+          pos.lineNumber >= c.modifiedStartLineNumber && 
+          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
+        );
+
+        if (!change) {
+          change = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) >= pos.lineNumber);
+        }
+        if (!change) {
+           change = changes[0];
+        }
+
+        if (change) {
+           const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+           let originalTextToInsert = "";
+           if (originalEndLineNumber > 0 && originalStartLineNumber > 0) {
+             const startRange = new monaco.Range(originalStartLineNumber, 1, originalEndLineNumber, originalModel.getLineMaxColumn(originalEndLineNumber));
+             originalTextToInsert = originalModel.getValueInRange(startRange);
+           }
+
+           let modifiedTextToInsert = "";
+           if (modifiedEndLineNumber > 0 && modifiedStartLineNumber > 0) {
+             const startRange = new monaco.Range(modifiedStartLineNumber, 1, modifiedEndLineNumber, modifiedModel.getLineMaxColumn(modifiedEndLineNumber));
+             modifiedTextToInsert = modifiedModel.getValueInRange(startRange);
+           }
+
+           let textToInsert = "";
+           if (originalTextToInsert && modifiedTextToInsert) {
+             textToInsert = originalTextToInsert + "\n" + modifiedTextToInsert;
+           } else {
+             textToInsert = originalTextToInsert || modifiedTextToInsert;
+           }
+
+           const rStart = modifiedStartLineNumber === 0 ? modifiedStartLineNumber + 1 : modifiedStartLineNumber;
+           let rEnd = modifiedEndLineNumber === 0 ? modifiedStartLineNumber : modifiedEndLineNumber;
+           if (rEnd === 0) rEnd = 1;
+           const rStartBounded = rStart === 0 ? 1 : rStart;
+           
+           let range = new monaco.Range(rStartBounded, 1, rEnd, modifiedModel.getLineMaxColumn(rEnd));
+
+           modifiedEditor.executeEdits("merge", [{
+             range: range,
+             text: textToInsert,
+             forceMoveMarkers: true
+           }]);
+
+           diffEditor.getModifiedEditor().getAction('editor.action.accessibleDiffViewer.next')?.run();
+        }
+      },
+      appendCurrentChunkRight: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return;
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return;
+
+        const modifiedEditor = diffEditor.getModifiedEditor();
+        const originalEditor = diffEditor.getOriginalEditor();
+        const pos = modifiedEditor.getPosition();
+        const originalModel = originalEditor.getModel();
+        const modifiedModel = modifiedEditor.getModel();
+
+        let change = changes.find((c: any) => 
+          pos.lineNumber >= c.modifiedStartLineNumber && 
+          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
+        );
+
+        if (!change) {
+          change = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) >= pos.lineNumber);
+        }
+        if (!change) {
+           change = changes[0];
+        }
+
+        if (change) {
+           const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+           let originalTextToInsert = "";
+           if (originalEndLineNumber > 0 && originalStartLineNumber > 0) {
+             const startRange = new monaco.Range(originalStartLineNumber, 1, originalEndLineNumber, originalModel.getLineMaxColumn(originalEndLineNumber));
+             originalTextToInsert = originalModel.getValueInRange(startRange);
+           }
+
+           let modifiedTextToInsert = "";
+           if (modifiedEndLineNumber > 0 && modifiedStartLineNumber > 0) {
+             const startRange = new monaco.Range(modifiedStartLineNumber, 1, modifiedEndLineNumber, modifiedModel.getLineMaxColumn(modifiedEndLineNumber));
+             modifiedTextToInsert = modifiedModel.getValueInRange(startRange);
+           }
+
+           let textToInsert = "";
+           if (originalTextToInsert && modifiedTextToInsert) {
+             textToInsert = modifiedTextToInsert + "\n" + originalTextToInsert;
+           } else {
+             textToInsert = modifiedTextToInsert || originalTextToInsert;
            }
 
            const rStart = originalStartLineNumber === 0 ? originalStartLineNumber + 1 : originalStartLineNumber;

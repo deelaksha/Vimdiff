@@ -6,7 +6,7 @@ import { DiffViewer, DiffViewerRef, ConflictData } from "@/components/DiffViewer
 import { StatusBar } from "@/components/StatusBar";
 import { Tooltip } from "@/components/Tooltip";
 import { createPatch } from "diff";
-import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2, ArrowRightToLine } from "lucide-react";
+import { GitMerge, ChevronUp, ChevronDown, ArrowRight, ArrowLeft, Check, X, Edit2, Undo2, Redo2, ArrowRightToLine, PlusCircle } from "lucide-react";
 
 const SAMPLE_ORIGINAL = `export function calculateTotal(items) {
   let total = 0;
@@ -243,11 +243,17 @@ export default function Home() {
          <button onClick={() => diffRef.current?.acceptCurrentChunkRight()} className="px-3 py-1 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800/80 hover:bg-amber-200 dark:hover:bg-amber-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <ArrowLeft size={14} /> Accept Modified (Right {'->'} Left)
          </button>
+         <button onClick={() => diffRef.current?.appendCurrentChunkRight()} className="px-3 py-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-800/80 hover:bg-orange-200 dark:hover:bg-orange-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Keep original code but append the modified code below it">
+            <PlusCircle size={14} /> Keep Both (Append Modified)
+         </button>
          <button onClick={() => diffRef.current?.acceptCurrentChunkLeft()} className="px-3 py-1 bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-800/80 hover:bg-green-200 dark:hover:bg-green-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <ArrowRight size={14} /> Accept Original Block
          </button>
          <button onClick={() => diffRef.current?.acceptCurrentLineLeft()} className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800/80 hover:bg-emerald-200 dark:hover:bg-emerald-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <ArrowRightToLine size={14} /> Accept Single Line
+         </button>
+         <button onClick={() => diffRef.current?.appendCurrentChunkLeft()} className="px-3 py-1 bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 border border-teal-300 dark:border-teal-800/80 hover:bg-teal-200 dark:hover:bg-teal-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap" title="Keep modified code but prepend the original code above it">
+            <PlusCircle size={14} /> Keep Both (Prepend Original)
          </button>
          <button onClick={() => diffRef.current?.goToNextDiff()} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800/80 hover:bg-blue-200 dark:hover:bg-blue-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap">
             <Check size={14} /> Keep Right (Accept Modified)
