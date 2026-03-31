@@ -25,7 +25,8 @@ export interface DiffViewerRef {
   appendCurrentChunkLeft: () => void;
   appendCurrentChunkRight: () => void;
   acceptAllKeepBoth: () => void;
-  singleMergeAll: () => void;
+  singleMergeAll: (language: string) => Promise<{ success: boolean; error?: string } | void>;
+  getAllConflicts: () => ConflictData[];
 }
 
 export interface ConflictData {
@@ -152,6 +153,40 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
       },
       formatModified: () => {
         diffEditorRef.current?.getModifiedEditor()?.getAction('editor.action.formatDocument')?.run();
+      },
+      getAllConflicts: () => {
+        const diffEditor = diffEditorRef.current;
+        const monaco = monacoRef.current;
+        if (!diffEditor || !monaco) return [];
+        
+        const changes = diffEditor.getLineChanges();
+        if (!changes || changes.length === 0) return [];
+
+        const originalModel = diffEditor.getOriginalEditor().getModel();
+        const modifiedModel = diffEditor.getModifiedEditor().getModel();
+        const conflicts: ConflictData[] = [];
+
+        changes.forEach((change: any) => {
+           const { originalStartLineNumber, originalEndLineNumber, modifiedStartLineNumber, modifiedEndLineNumber } = change;
+
+           let orgText = "";
+           if (originalEndLineNumber > 0 && originalStartLineNumber > 0) {
+             const startRange = new monaco.Range(originalStartLineNumber, 1, originalEndLineNumber, originalModel.getLineMaxColumn(originalEndLineNumber));
+             orgText = originalModel.getValueInRange(startRange);
+           }
+
+           const rStart = modifiedStartLineNumber === 0 ? modifiedStartLineNumber + 1 : modifiedStartLineNumber;
+           let rEnd = modifiedEndLineNumber === 0 ? modifiedStartLineNumber : modifiedEndLineNumber;
+           if (rEnd === 0) rEnd = 1;
+           const rStartBounded = rStart === 0 ? 1 : rStart;
+           
+           let modRange = new monaco.Range(rStartBounded, 1, rEnd, modifiedModel.getLineMaxColumn(rEnd));
+           const modText = modifiedModel.getValueInRange(modRange);
+
+           conflicts.push({ originalText: orgText, modifiedText: modText, modifiedRange: modRange });
+        });
+        
+        return conflicts;
       },
       acceptCurrentChunkLeft: () => {
         const diffEditor = diffEditorRef.current;
@@ -376,13 +411,13 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
 
         modifiedEditor.executeEdits("merge-all", edits);
       },
-      singleMergeAll: () => {
+      singleMergeAll: async (language: string) => {
         const diffEditor = diffEditorRef.current;
         const monaco = monacoRef.current;
-        if (!diffEditor || !monaco) return;
+        if (!diffEditor || !monaco) return { success: false, error: "Editor not initialized" };
         
         const changes = diffEditor.getLineChanges();
-        if (!changes || changes.length === 0) return;
+        if (!changes || changes.length === 0) return { success: true };
 
         const modifiedEditor = diffEditor.getModifiedEditor();
         const originalModel = diffEditor.getOriginalEditor().getModel();
@@ -417,7 +452,31 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
            if (finalContent.length > 0 && !finalContent.endsWith("\n")) {
                finalContent += "\n";
            }
-           finalContent += newLinesToAppend.join("\n");
+           finalContent += "\n" + newLinesToAppend.join("\n");
+        }
+
+        // Structural Validation Implementation
+        if (language === "xml") {
+           const parser = new DOMParser();
+           const doc = parser.parseFromString(finalContent, "text/xml");
+           const errorNode = doc.querySelector("parsererror");
+           if (errorNode) {
+              return { success: false, error: "XML Parsing Error: " + (errorNode.textContent || "Invalid structure") };
+           }
+        } else if (language === "python" || language === "go") {
+           try {
+              const res = await fetch("/api/validate", {
+                 method: "POST",
+                 headers: { "Content-Type": "application/json" },
+                 body: JSON.stringify({ language, content: finalContent })
+              });
+              const data = await res.json();
+              if (!res.ok || !data.valid) {
+                 return { success: false, error: data.error || "Syntax check failed" };
+              }
+           } catch (e: any) {
+              return { success: false, error: "Validation server request failed" };
+           }
         }
 
         const lineCount = modifiedModel.getLineCount();
@@ -429,6 +488,7 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
            text: finalContent,
            forceMoveMarkers: true
         }]);
+        return { success: true };
       },
       appendCurrentChunkRight: () => {
         const diffEditor = diffEditorRef.current;
@@ -612,19 +672,35 @@ export const DiffViewer = forwardRef<DiffViewerRef, DiffViewerProps>(
         const changes = diffEditor.getLineChanges();
         if (!changes || changes.length === 0) return null;
 
+        const isOriginal = lastFocusedEditorRef.current === 'original';
         const modifiedEditor = diffEditor.getModifiedEditor();
-        const pos = modifiedEditor.getPosition();
-        const originalModel = diffEditor.getOriginalEditor().getModel();
+        const originalEditor = diffEditor.getOriginalEditor();
+        const originalModel = originalEditor.getModel();
         const modifiedModel = modifiedEditor.getModel();
 
-        let change = changes.find((c: any) => 
-          pos.lineNumber >= c.modifiedStartLineNumber && 
-          pos.lineNumber <= (c.modifiedEndLineNumber === 0 ? c.modifiedStartLineNumber : c.modifiedEndLineNumber)
-        );
+        let pos: any;
+        let change;
 
-        if (!change) {
-          change = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) >= pos.lineNumber);
+        if (isOriginal) {
+          pos = originalEditor.getPosition();
+          change = changes.find((c: any) => 
+            pos.lineNumber >= c.originalStartLineNumber && 
+            pos.lineNumber <= Math.max(c.originalEndLineNumber, c.originalStartLineNumber)
+          );
+          if (!change) {
+             change = changes.find((c: any) => Math.max(c.originalStartLineNumber, 1) >= pos.lineNumber);
+          }
+        } else {
+          pos = modifiedEditor.getPosition();
+          change = changes.find((c: any) => 
+            pos.lineNumber >= c.modifiedStartLineNumber && 
+            pos.lineNumber <= Math.max(c.modifiedEndLineNumber, c.modifiedStartLineNumber)
+          );
+          if (!change) {
+            change = changes.find((c: any) => Math.max(c.modifiedStartLineNumber, 1) >= pos.lineNumber);
+          }
         }
+
         if (!change) {
            change = changes[0];
         }
