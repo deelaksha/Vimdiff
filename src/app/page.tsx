@@ -69,6 +69,7 @@ export default function Home() {
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [isEditingResolution, setIsEditingResolution] = useState(false);
+  const [aiChatInput, setAiChatInput] = useState("");
   
   // AI Merge All States
   const [isAIMergeAllModalOpen, setIsAIMergeAllModalOpen] = useState(false);
@@ -192,10 +193,12 @@ export default function Home() {
     }
   };
 
-  const handleAIMergeAll = async () => {
+  const handleAIMergeAll = async (isRetry?: boolean) => {
     if (!diffRef.current) return;
+    const currentTextToSend = isRetry ? aiProposedText : "";
     setIsAILoading(true);
     setAiError(null);
+    if (!isRetry) setAiChatInput("");
     try {
       const res = await fetch("/api/ai-merge", {
         method: "POST",
@@ -204,7 +207,9 @@ export default function Home() {
           type: "all",
           language,
           originalText: diffRef.current.getOriginalContent(),
-          modifiedText: diffRef.current.getModifiedContent()
+          modifiedText: diffRef.current.getModifiedContent(),
+          userInstruction: isRetry ? aiChatInput : "",
+          currentMergedText: currentTextToSend
         })
       });
       const data = await res.json();
@@ -235,11 +240,13 @@ export default function Home() {
     fetchAIStep(conflicts[0]);
   };
 
-  const fetchAIStep = async (conflict: ConflictData) => {
+  const fetchAIStep = async (conflict: ConflictData, isRetry?: boolean) => {
+    const currentTextToSend = isRetry ? aiProposedText : "";
     setIsAILoading(true);
     setAiError(null);
     setAiProposedText(""); // clearing previous
     setIsEditingResolution(false);
+    if (!isRetry) setAiChatInput("");
     try {
       // getting some context from around the range
       const diffEditor = diffRef.current?.getModifiedContent() || "";
@@ -256,7 +263,9 @@ export default function Home() {
           language,
           originalText: conflict.originalText,
           modifiedText: conflict.modifiedText,
-          context: context
+          context: context,
+          userInstruction: isRetry ? aiChatInput : "",
+          currentMergedText: currentTextToSend
         })
       });
       const data = await res.json();
@@ -484,7 +493,7 @@ export default function Home() {
          </button>
          <button 
            disabled={isAILoading}
-           onClick={handleAIMergeAll} 
+           onClick={() => handleAIMergeAll()} 
            className={`px-3 py-1 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-800/80 hover:bg-indigo-200 dark:hover:bg-indigo-800/60 rounded transition shadow-sm flex items-center gap-1 font-medium whitespace-nowrap ${isAILoading ? 'opacity-50' : ''}`} 
            title="Autonomously resolve all conflicts intelligently using Gemini AI"
          >
@@ -655,6 +664,22 @@ export default function Home() {
                  />
                )}
             </div>
+            
+            <div className="px-4 pb-2 bg-white dark:bg-zinc-950 flex gap-2">
+               <input 
+                 type="text" 
+                 placeholder="Instruct AI on how to adjust this file..." 
+                 className="flex-1 px-3 py-1.5 text-sm rounded-md border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                 value={aiChatInput}
+                 onChange={(e) => setAiChatInput(e.target.value)}
+                 onKeyDown={(e) => { if (e.key === 'Enter' && aiChatInput.trim() && !isAILoading) handleAIMergeAll(true); }}
+                 disabled={isAILoading}
+               />
+               <button onClick={() => handleAIMergeAll(true)} disabled={isAILoading || !aiChatInput.trim()} className="px-3 py-1.5 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 disabled:opacity-50 rounded-md text-sm font-medium transition">
+                 {isAILoading ? "Wait..." : "Update"}
+               </button>
+            </div>
+
             <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex justify-end gap-3">
                <button onClick={() => setIsAIMergeAllModalOpen(false)} className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-sm font-medium transition">Discard</button>
                <button onClick={() => {
@@ -718,6 +743,21 @@ export default function Home() {
                  />
               )}
               
+              <div className="mt-3 flex gap-2">
+                 <input 
+                   type="text" 
+                   placeholder="Instruct AI to adjust this block..." 
+                   className="flex-1 px-3 py-1.5 text-[13px] rounded-md border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                   value={aiChatInput}
+                   onChange={(e) => setAiChatInput(e.target.value)}
+                   onKeyDown={(e) => { if (e.key === 'Enter' && aiChatInput.trim() && !isAILoading && aiConflicts[aiCurrentConflictIndex]) fetchAIStep(aiConflicts[aiCurrentConflictIndex], true); }}
+                   disabled={isAILoading}
+                 />
+                 <button onClick={() => { if (aiConflicts[aiCurrentConflictIndex]) fetchAIStep(aiConflicts[aiCurrentConflictIndex], true); }} disabled={isAILoading || !aiChatInput.trim()} className="px-3 py-1.5 bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-200 dark:hover:bg-cyan-800 disabled:opacity-50 rounded-md text-[13px] font-medium transition flex-shrink-0">
+                   Update
+                 </button>
+              </div>
+
               <div className="flex justify-between items-center mt-4">
                   <button onClick={() => setIsAIStepModalOpen(false)} className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded text-sm font-medium transition">Cancel</button>
                   <div className="flex items-center gap-2">
